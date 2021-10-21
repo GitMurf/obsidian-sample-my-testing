@@ -1,4 +1,10 @@
 import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+declare module "obsidian" {
+    interface WorkspaceLeaf {
+        containerEl: HTMLElement;
+    }
+}
+const pluginName = 'Murf Sample Plugin for Testing';
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -9,15 +15,17 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 }
 
 export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+    settings: MyPluginSettings;
+    ribbonIconTitle: string;
 
 	async onload() {
-		console.log('loading plugin');
+        console.log("loading plugin: " + pluginName);
 		console.log('testing this from github.dev');
 
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
+        this.ribbonIconTitle = 'Murf Sample Plugin';
+        this.addRibbonIcon('dice', this.ribbonIconTitle, () => {
 			new Notice('This is a notice!');
 		});
 
@@ -51,11 +59,25 @@ export default class MyPlugin extends Plugin {
 			console.log('click', evt);
 		});
 
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
+        this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+        //onLayoutReady should wait until Obsidian loads all plugins on startup
+        this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
+    }
+
+    onLayoutReady(): void {
+        console.log('running after everything is loaded on startup');
+        const myRibbonIcon = document.querySelector(`.side-dock-ribbon-action[aria-label="${this.ribbonIconTitle}`) as HTMLElement;
+        if (myRibbonIcon) {
+            this.registerDomEvent(myRibbonIcon, 'contextmenu', (evt: MouseEvent) => {
+                evt.preventDefault();
+                console.log('right click ribbon icon');
+            });
+        }
+    }
 
 	onunload() {
-		console.log('unloading plugin');
+        console.log("Unloading plugin: " + pluginName);
 	}
 
 	async loadSettings() {
